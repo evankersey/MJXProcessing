@@ -1,0 +1,84 @@
+#dont use me
+import os
+import fnmatch
+defaultPath = "/mnt/Filbey/common/Studies/MJX_WF/examples/NL/sub-1126"
+defaultPath = "/home/evan/Filbey/common/Studies/MJXProcessing/examples/NL/sub-1126"
+"""
+input: /mnt/Filbey/common/Studies/MJX_WF
+        output: t1->anat
+                dwi -> dwi
+                topUp -> fmap
+                task*BOLD (not topUp)->func
+"""
+
+#### find functions
+def findParOrRec(path):
+    rawDataList = []
+    for roots, dirs, files in os.walk(path):
+        for file in files:
+            if fnmatch.fnmatch(file, "*.REC"):
+                # print(file)
+                rawDataList.append(file)
+            if fnmatch.fnmatch(file, "*.PAR"):
+                # print(file)
+                rawDataList.append(file)
+    return rawDataList
+
+
+def findT1(path=defaultPath):
+    fileNameList = []
+    for file in findParOrRec(path):
+        if fnmatch.fnmatch(file, "*T1*"):
+            fileNameList.append(file)
+    return fileNameList
+
+
+def findDwi(path=defaultPath):
+    dwiList = []
+    for file in findParOrRec(path):
+        if fnmatch.fnmatch(file, "*dwi*"):
+            dwiList.append(file)
+    return dwiList
+
+
+def findFmap(path=defaultPath):
+    fmapList = []
+    for file in findParOrRec(path):
+        if fnmatch.fnmatch(file, "*topup*"):
+            fmapList.append(file)
+    return fmapList
+
+
+def findTask(path=defaultPath):
+    taskList = []
+    for file in findParOrRec(path):
+        if fnmatch.fnmatch(file, "*bold*"):
+            if not fnmatch.fnmatch(file, "*topup*"):
+                taskList.append(file)
+    return taskList
+#### end find functions
+
+
+
+# dcm2niix_NL -p n -o output/folder -f sub-${subjID}_ses-0${ses}_T1w *.PAR
+class Subject:
+    def __init__(self, subject_path):
+        self.subject_path = subject_path
+        self.sessions = []
+        for session in os.listdir(subject_path):
+            self.sessions.append(Session(subject_path + '/' + session))
+
+
+class Session():
+    def __init__(self, session_path):
+        # creates list of files eligible for each BIDS directory
+        self.session_path = session_path
+        self.anat_files = findT1(session_path)
+        self.dwi_files = findDwi(session_path)
+        self.fmap_files = findFmap(session_path)
+        self.func_files = findTask(session_path)
+
+
+testSubject = Subject(defaultPath)
+print(testSubject.sessions.__getitem__(0).anat_files)
+
